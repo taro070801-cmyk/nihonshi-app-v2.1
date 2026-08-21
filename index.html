@@ -75,7 +75,9 @@
         <label>📚 範囲を選択</label>
         <select id="partSelect" onchange="onPartChange()"></select>
         <select id="eraSelect" onchange="onEraChange()"></select>
-        <select id="itemSelect"></select>
+        <label style="font-size: 13px; margin-top: 8px;">項目 (複数選択可)</label>
+        <select id="itemSelect" multiple></select>
+        <div class="hint">※ PC: Ctrl / Cmd キーを押しながらクリックで複数選択</div>
       </div>
 
       <div class="card">
@@ -8769,7 +8771,7 @@
     onEraChange();
   }
 
-  function onEraChange() {
+function onEraChange() {
     const partVal = document.getElementById('partSelect').value;
     const eraVal = document.getElementById('eraSelect').value;
     const itemSelect = document.getElementById('itemSelect');
@@ -8778,8 +8780,14 @@
     if (partVal !== 'ALL') filteredRules = filteredRules.filter(r => r.part === partVal);
     if (eraVal !== 'ALL') filteredRules = filteredRules.filter(r => r.era === eraVal);
 
-    const items = ["ALL", ...new Set(filteredRules.map(r => r.item))];
-    itemSelect.innerHTML = items.map(i => `<option value="${i}">${i === 'ALL' ? '【項目】すべて' : i}</option>`).join('');
+    const items = [...new Set(filteredRules.map(r => r.item))];
+    itemSelect.innerHTML = `<option value="ALL" selected>【項目】すべて</option>` + 
+      items.map(i => `<option value="${i}">${i}</option>`).join('');
+  }
+
+  function getSelectedItems() {
+    const select = document.getElementById('itemSelect');
+    return Array.from(select.selectedOptions).map(opt => opt.value);
   }
 
   function toggleStarBtn(el) { el.classList.toggle('active'); }
@@ -8874,11 +8882,12 @@
     }).join('');
   }
 
-  function startQuiz() {
+ function startQuiz() {
     const selectedStars = getSelectedStars();
     const partVal = document.getElementById('partSelect').value;
     const eraVal = document.getElementById('eraSelect').value;
-    const itemVal = document.getElementById('itemSelect').value;
+    const selectedItems = getSelectedItems();
+    const orderVal = document.getElementById('orderSelect').value;
     const mode = document.getElementById('modeSelect').value;
     const countVal = document.getElementById('countSelect').value;
 
@@ -8889,15 +8898,24 @@
       if (!selectedStars.includes(q.star)) return false;
       if (partVal !== 'ALL' && meta.part !== partVal) return false;
       if (eraVal !== 'ALL' && meta.era !== eraVal) return false;
-      if (itemVal !== 'ALL' && meta.item !== itemVal) return false;
+      
+      if (selectedItems.length > 0 && !selectedItems.includes('ALL')) {
+        if (!selectedItems.includes(meta.item)) return false;
+      }
+      
       if (mode === 'unanswered' && history[q.id] !== undefined) return false;
-      if (mode === 'mistaken' && history[q.id] !== false) return false;
+      if (mode === 'mistaken' && history[q.id] === false) return false;
       return true;
     });
 
     if (filtered.length === 0) return alert('条件に一致する問題がありません。');
 
-    filtered.sort(() => Math.random() - 0.5);
+    if (orderVal === 'asc') {
+      filtered.sort((a, b) => a.id - b.id);
+    } else {
+      filtered.sort(() => Math.random() - 0.5);
+    }
+
     if (countVal !== 'all') filtered = filtered.slice(0, parseInt(countVal));
 
     currentQuestions = filtered;
