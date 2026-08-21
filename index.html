@@ -19,7 +19,7 @@
     .card-value { font-size: 22px; font-weight: bold; }
     
     label { font-weight: 600; display: block; margin-bottom: 8px; font-size: 15px; }
-    select, input[type="text"] { width: 100%; padding: 12px; font-size: 16px; border-radius: 10px; border: 1px solid #d1d1d6; background: #f9f9fb; }
+    select, input[type="text"] { width: 100%; padding: 12px; font-size: 15px; border-radius: 10px; border: 1px solid #d1d1d6; background: #f9f9fb; margin-bottom: 8px; }
     
     .star-group { display: flex; gap: 6px; }
     .star-btn { flex: 1; padding: 10px 0; background: #f2f2f7; border: 2px solid transparent; border-radius: 8px; font-weight: bold; text-align: center; cursor: pointer; font-size: 13px; color: #8e8e93; }
@@ -28,10 +28,9 @@
     .btn-primary { width: 100%; background: #007aff; color: #fff; border: none; padding: 16px; font-size: 18px; font-weight: bold; border-radius: 12px; cursor: pointer; margin-top: 8px; }
     .btn-secondary { width: 100%; background: #8e8e93; color: #fff; border: none; padding: 12px; font-size: 16px; font-weight: bold; border-radius: 10px; cursor: pointer; margin-top: 8px; }
 
-    .badge { display: inline-block; background: #e5e5ea; padding: 4px 8px; border-radius: 6px; font-size: 12px; margin-bottom: 8px; font-weight: 600; }
+    .badge { display: inline-block; background: #e5e5ea; padding: 4px 8px; border-radius: 6px; font-size: 12px; margin-bottom: 4px; font-weight: 600; margin-right: 4px; }
     .q-text { font-size: 18px; font-weight: bold; margin-bottom: 16px; line-height: 1.4; }
     .a-text { font-size: 18px; color: #34c759; font-weight: bold; margin-top: 12px; padding: 12px; background: #e8f8ec; border-radius: 8px; display: none; }
-    .exp-text { font-size: 14px; color: #666; margin-top: 8px; display: none; line-height: 1.4; }
     .action-btns { display: flex; gap: 8px; margin-top: 12px; }
     .btn-ok { flex: 1; background: #34c759; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
     .btn-ng { flex: 1; background: #ff3b30; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
@@ -46,7 +45,6 @@
   <div class="container">
     <h1>日本史 一問一答</h1>
 
-    <!-- タブメニュー -->
     <div class="nav-tabs" id="tabBar">
       <div class="tab active" onclick="switchTab('home')">ホーム</div>
       <div class="tab" onclick="switchTab('progress')">進捗</div>
@@ -62,7 +60,7 @@
       </div>
 
       <div class="card">
-        <label>⭐️ 出題する星（複数選択可）</label>
+        <label>⭐️ 出題する星</label>
         <div class="star-group">
           <div class="star-btn active" data-star="3" onclick="toggleStarBtn(this)">★★★</div>
           <div class="star-btn active" data-star="2" onclick="toggleStarBtn(this)">★★</div>
@@ -72,8 +70,10 @@
       </div>
 
       <div class="card">
-        <label for="eraSelect">⏳ 時代・テーマを選択</label>
-        <select id="eraSelect"></select>
+        <label>📚 範囲を選択</label>
+        <select id="partSelect" onchange="onPartChange()"></select>
+        <select id="eraSelect" onchange="onEraChange()"></select>
+        <select id="itemSelect"></select>
       </div>
 
       <div class="card">
@@ -134,7 +134,7 @@
     <div id="viewSearch" style="display:none;">
       <div class="card">
         <label for="searchInput">🔍 問題検索</label>
-        <input type="text" id="searchInput" placeholder="キーワードを入力（例: 卑弥呼、縄文）" oninput="renderSearch()">
+        <input type="text" id="searchInput" placeholder="キーワードを入力（例: 卑弥呼、水城）" oninput="renderSearch()">
       </div>
       <div class="card" id="searchResults"></div>
     </div>
@@ -143,14 +143,16 @@
     <div id="quizView" style="display:none;">
       <div class="card">
         <div>
+          <span class="badge" id="partBadge">部</span>
           <span class="badge" id="eraBadge">時代</span>
           <span class="badge" id="starBadge" style="background:#fff3c4; color:#996600;">★★★</span>
           <span style="float:right; font-size:14px; color:#8e8e93;" id="progressText">1 / 10</span>
         </div>
+        <div style="font-size:12px; color:#8e8e93; margin-top:4px;" id="itemBadge">項目名</div>
+        <hr style="border:none; border-top:1px solid #eee; margin:10px 0;">
         <div class="q-text" id="qText">問題文</div>
         <button class="btn-secondary" id="ansBtn" onclick="showAnswer()">答えを見る</button>
         <div class="a-text" id="aText">正解</div>
-        <div class="exp-text" id="expText">解説</div>
       </div>
 
       <div id="judgeBtns" style="display:none;">
@@ -165,40 +167,205 @@
   </div>
 
 <script>
-  // 一問一答データ（修復済み）
-  const QUESTIONS = [
-    { "id": 1, "star": 1, "era": "旧石器", "question": "人類の祖先が地球上に現れるのは、今から約（）年前と言われている。", "answer": "700万" },
-    { "id": 2, "star": 3, "era": "旧石器", "question": "地質年代の第四紀は、およそ1万年前を境に、（）と（）に二分される。", "answer": "更新世、完新世" },
-    { "id": 3, "star": 3, "era": "旧石器", "question": "更新世は、（）時代とも呼ばれ、寒冷な（）期と比較的温暖な（）期とが交互に訪れた。", "answer": "氷河期、氷期、間氷期" },
-    { "id": 4, "star": 3, "era": "旧石器", "question": "日本列島に渡来した大型動物を代表する（）ゾウは、19世紀に来日したドイツ人地質学者の名にちなんでつけられた。", "answer": "ナウマンゾウ" },
-    { "id": 5, "star": 2, "era": "旧石器", "question": "ナウマンゾウの化石は、長野県にある（）遺跡から多数発見されている。", "answer": "野尻湖遺跡" },
-    { "id": 25, "star": 3, "era": "縄文", "question": "（）世になると、地球の気候が温暖になり、海面が上昇して現代の日本列島が形成された。", "answer": "完新世" },
-    { "id": 65, "star": 3, "era": "弥生", "question": "前８世紀頃に、（）時代が始まるまで、縄文時代が日本列島を広く覆った。", "answer": "弥生時代" },
-    { "id": 126, "star": 3, "era": "弥生", "question": "3世紀には、（）を女王とする（）が30余りの小国をまとめていた。", "answer": "卑弥呼、邪馬台国" },
-    { "id": 156, "star": 3, "era": "古墳", "question": "３世紀中頃から７世紀まで（約400年間）の、古墳が営まれた時代を（）時代という。", "answer": "古墳時代" },
-    { "id": 218, "star": 2, "era": "飛鳥", "question": "六世紀初めに、（）天皇を擁立したのは大伴金村であると伝えられる。", "answer": "継体天皇" },
-    { "id": 291, "star": 3, "era": "飛鳥", "question": "太宰府防衛のため、（朝鮮の山城築城技術を取り入れた）（）がつくられた。", "answer": "朝鮮式山城" },
-    { "id": 292, "star": 2, "era": "飛鳥", "question": "664年には、太宰府の防衛のために（）が設置された。", "answer": "水城" }
+  // マッピングルール定義
+  const MAPPING_RULES = [
+    { part: "第1部 原始・古代", era: "旧石器", item: "1 日本文化のあけぼの", idStart: 1, idEnd: 24 },
+    { part: "第1部 原始・古代", era: "縄文", item: "2 縄文文化の成立", idStart: 25, idEnd: 64 },
+    { part: "第1部 原始・古代", era: "弥生", item: "3 弥生文化の成立", idStart: 65, idEnd: 104 },
+    { part: "第1部 原始・古代", era: "弥生", item: "4 小国の形成と東アジア", idStart: 105, idEnd: 135 },
+    { part: "第1部 原始・古代", era: "古墳", item: "5 小国の形成と東アジアとの関係", idStart: 136, idEnd: 155 },
+    { part: "第1部 原始・古代", era: "古墳", item: "6 古墳文化（1）～古墳の変遷～", idStart: 156, idEnd: 174 },
+    { part: "第1部 原始・古代", era: "古墳", item: "7 古墳文化（2）～大陸文化の受容と信仰～", idStart: 175, idEnd: 199 },
+    { part: "第1部 原始・古代", era: "古墳", item: "8 ヤマト政権の成立", idStart: 200, idEnd: 217 },
+    { part: "第1部 原始・古代", era: "飛鳥", item: "9 統一国家への道", idStart: 218, idEnd: 238 },
+    { part: "第1部 原始・古代", era: "飛鳥", item: "10 飛鳥文化", idStart: 239, idEnd: 264 },
+    { part: "第1部 原始・古代", era: "飛鳥", item: "11 律令国家の形成", idStart: 265, idEnd: 307 },
+    { part: "第1部 原始・古代", era: "飛鳥", item: "12 白鳳文化", idStart: 308, idEnd: 320 },
+    { part: "第1部 原始・古代", era: "奈良", item: "13 律令体制（1）～律令国家のしくみ～", idStart: 321, idEnd: 340 },
+    { part: "第1部 原始・古代", era: "奈良", item: "14 律令体制（2）～律令国家の支配組織～", idStart: 341, idEnd: 369 },
+    { part: "第1部 原始・古代", era: "奈良", item: "15 律令体制（3）～律令国家の税制～", idStart: 370, idEnd: 412 },
+    { part: "第1部 原始・古代", era: "奈良", item: "16 奈良時代の政治（1）～平城京の時代～", idStart: 413, idEnd: 442 },
+    { part: "第1部 原始・古代", era: "奈良", item: "17 奈良時代の政治（2）～奈良時代の政変～", idStart: 443, idEnd: 480 },
+    { part: "第1部 原始・古代", era: "奈良", item: "18 天平文化（1）～鎮護国家の仏教～", idStart: 481, idEnd: 504 },
+    { part: "第1部 原始・古代", era: "奈良", item: "19 天平文化（2）～天平文化の展開～", idStart: 505, idEnd: 531 },
+    { part: "第1部 原始・古代", era: "平安", item: "20 平安初期の政治", idStart: 532, idEnd: 574 },
+    { part: "第1部 原始・古代", era: "平安", item: "21 弘仁・貞観文化", idStart: 575, idEnd: 618 },
+    { part: "第1部 原始・古代", era: "平安", item: "22 藤原氏の他氏排斥", idStart: 619, idEnd: 651 },
+    { part: "第1部 原始・古代", era: "平安", item: "23 摂関政治の展開と平安時代の対外関係", idStart: 652, idEnd: 679 },
+    { part: "第1部 原始・古代", era: "平安", item: "24 国風文化（1）～国風文化の展開～", idStart: 680, idEnd: 717 },
+    { part: "第1部 原始・古代", era: "平安", item: "25 国風文化（2）～浄土教文化の発展～", idStart: 718, idEnd: 736 },
+    { part: "第1部 原始・古代", era: "平安", item: "26 地方政治の変容と荘園制度", idStart: 737, idEnd: 770 },
+    { part: "第1部 原始・古代", era: "平安", item: "27 地方政治の混乱と武士の台頭", idStart: 771, idEnd: 795 },
+    { part: "第1部 原始・古代", era: "平安", item: "28 院政の開始", idStart: 796, idEnd: 819 },
+    { part: "第1部 原始・古代", era: "平安", item: "29 平氏政権の成立", idStart: 820, idEnd: 848 },
+    { part: "第1部 原始・古代", era: "平安", item: "30 院政期の文化", idStart: 849, idEnd: 872 },
+    { part: "第2部 中世", era: "鎌倉", item: "31 源平の争乱と鎌倉幕府の成立", idStart: 873, idEnd: 948 },
+    { part: "第2部 中世", era: "鎌倉", item: "32 執権政治の確立", idStart: 949, idEnd: 1011 },
+    { part: "第2部 中世", era: "鎌倉", item: "33 元寇と鎌倉幕府の衰退", idStart: 1012, idEnd: 1048 },
+    { part: "第2部 中世", era: "鎌倉", item: "34 武士の生活と鎌倉時代の経済", idStart: 1049, idEnd: 1091 },
+    { part: "第2部 中世", era: "鎌倉", item: "35 鎌倉文化（1）～宗教～", idStart: 1092, idEnd: 1143 },
+    { part: "第2部 中世", era: "鎌倉", item: "36 鎌倉文化（2）～美術～", idStart: 1144, idEnd: 1183 },
+    { part: "第2部 中世", era: "鎌倉", item: "37 鎌倉文化（3）～学問・文学～", idStart: 1184, idEnd: 1220 },
+    { part: "第2部 中世", era: "鎌倉", item: "38 鎌倉幕府の滅亡", idStart: 1221, idEnd: 1260 },
+    { part: "第2部 中世", era: "室町", item: "39 南北朝の動乱", idStart: 1261, idEnd: 1278 },
+    { part: "第2部 中世", era: "室町", item: "40 室町幕府の組織", idStart: 1279, idEnd: 1311 },
+    { part: "第2部 中世", era: "室町", item: "41 室町幕府の展開と動揺", idStart: 1312, idEnd: 1336 },
+    { part: "第2部 中世", era: "室町", item: "42 惣村と土一揆", idStart: 1337, idEnd: 1368 },
+    { part: "第2部 中世", era: "室町", item: "43 室町時代の外交（1）～日明関係～", idStart: 1369, idEnd: 1395 },
+    { part: "第2部 中世", era: "室町", item: "44 室町時代の外交（2）～対外関係～", idStart: 1396, idEnd: 1420 },
+    { part: "第2部 中世", era: "室町", item: "45 室町時代の産業と経済", idStart: 1421, idEnd: 1456 },
+    { part: "第2部 中世", era: "室町", item: "46 戦国大名", idStart: 1457, idEnd: 1497 },
+    { part: "第2部 中世", era: "室町", item: "47 室町時代の都市の発展", idStart: 1498, idEnd: 1516 },
+    { part: "第2部 中世", era: "室町", item: "48 室町時代の文化（1）～宗教・学問～", idStart: 1517, idEnd: 1569 },
+    { part: "第2部 中世", era: "室町", item: "49 室町時代の文化（2）～絵画・建築・工芸～", idStart: 1570, idEnd: 1591 },
+    { part: "第2部 中世", era: "室町", item: "50 室町時代の文化（3）～能楽・連歌など～", idStart: 1592, idEnd: 1619 },
+    { part: "第3部 近世", era: "安土桃山", item: "51 ヨーロッパ人の来航", idStart: 1620, idEnd: 1643 },
+    { part: "第3部 近世", era: "安土桃山", item: "52 信長の政治", idStart: 1644, idEnd: 1664 },
+    { part: "第3部 近世", era: "安土桃山", item: "53 秀吉の政治（1）～秀吉の天下統一～", idStart: 1665, idEnd: 1706 },
+    { part: "第3部 近世", era: "安土桃山", item: "54 秀吉の政治（2）～秀吉の対外政策～", idStart: 1707, idEnd: 1720 },
+    { part: "第3部 近世", era: "安土桃山", item: "55 桃山文化", idStart: 1721, idEnd: 1753 },
+    { part: "第3部 近世", era: "江戸", item: "56 江戸幕府の成立", idStart: 1754, idEnd: 1802 },
+    { part: "第3部 近世", era: "江戸", item: "57 大名の統制", idStart: 1803, idEnd: 1836 },
+    { part: "第3部 近世", era: "江戸", item: "58 朝廷・寺社の統制", idStart: 1837, idEnd: 1869 },
+    { part: "第3部 近世", era: "江戸", item: "59 農民・町人の統制", idStart: 1870, idEnd: 1929 },
+    { part: "第3部 近世", era: "江戸", item: "60 江戸時代初期の外交", idStart: 1930, idEnd: 1975 },
+    { part: "第3部 近世", era: "江戸", item: "61 鎖国への展開と長崎貿易", idStart: 1976, idEnd: 2003 },
+    { part: "第3部 近世", era: "江戸", item: "62 江戸時代初期の文化", idStart: 2004, idEnd: 2026 },
+    { part: "第3部 近世", era: "江戸", item: "63 文治政治と正徳の政治", idStart: 2027, idEnd: 2084 },
+    { part: "第3部 近世", era: "江戸", item: "64 江戸時代の農業", idStart: 2085, idEnd: 2130 },
+    { part: "第3部 近世", era: "江戸", item: "65 江戸時代の諸産業", idStart: 2131, idEnd: 2170 },
+    { part: "第3部 近世", era: "江戸", item: "66 江戸時代の交通", idStart: 2171, idEnd: 2214 },
+    { part: "第3部 近世", era: "江戸", item: "67 江戸時代の商業", idStart: 2215, idEnd: 2263 },
+    { part: "第3部 近世", era: "江戸", item: "68 元禄文化（1）～学問の興隆～", idStart: 2264, idEnd: 2311 },
+    { part: "第3部 近世", era: "江戸", item: "69 元禄文化（2）～元禄時代の諸文化～", idStart: 2312, idEnd: 2345 },
+    { part: "第3部 近世", era: "江戸", item: "70 享保の改革", idStart: 2346, idEnd: 2374 },
+    { part: "第3部 近世", era: "江戸", item: "71 田沼時代と農村", idStart: 2375, idEnd: 2399 },
+    { part: "第3部 近世", era: "江戸", item: "72 寛政の改革", idStart: 2400, idEnd: 2423 },
+    { part: "第3部 近世", era: "江戸", item: "73 列強の接近と生産の近代化", idStart: 2424, idEnd: 2444 },
+    { part: "第3部 近世", era: "江戸", item: "74 天保の改革と藩政改革", idStart: 2445, idEnd: 2481 },
+    { part: "第3部 近世", era: "江戸", item: "75 宝暦・天明期の文化（1）～洋学・国学・教育～", idStart: 2482, idEnd: 2530 },
+    { part: "第3部 近世", era: "江戸", item: "76 宝暦・天明期の文化（2）～文学・芸能・絵画～", idStart: 2531, idEnd: 2557 },
+    { part: "第3部 近世", era: "江戸", item: "77 化政文化（1）～学問・思想・教育～", idStart: 2558, idEnd: 2579 },
+    { part: "第3部 近世", era: "江戸", item: "78 化政文化（2）～文学・美術・民衆文化～", idStart: 2580, idEnd: 2607 },
+    { part: "第3部 近世", era: "江戸", item: "歴史総合（1）～開国前の「世界」～", idStart: 2608, idEnd: 2621 },
+    { part: "第4部 近代・現代", era: "江戸", item: "79 開国（1）～開国と和親～", idStart: 2622, idEnd: 2644 },
+    { part: "第4部 近代・現代", era: "江戸", item: "80 開国（2）～不平等条約の締結と開国後の貿易～", idStart: 2645, idEnd: 2673 },
+    { part: "第4部 近代・現代", era: "江戸", item: "81 江戸幕府の滅亡（1）～幕末の動揺と混乱～", idStart: 2674, idEnd: 2696 },
+    { part: "第4部 近代・現代", era: "江戸", item: "82 江戸幕府の滅亡（2）～幕府滅亡と幕末社会～", idStart: 2697, idEnd: 2731 },
+    { part: "第4部 近代・現代", era: "江戸", item: "歴史総合（2）～幕末期の「世界」～", idStart: 2732, idEnd: 2753 },
+    { part: "第4部 近代・現代", era: "明治", item: "83 明治維新（1）～明治政府の政治体制～", idStart: 2754, idEnd: 2786 },
+    { part: "第4部 近代・現代", era: "明治", item: "84 明治維新（2）～明治政府の経済政策～", idStart: 2787, idEnd: 2809 },
+    { part: "第4部 近代・現代", era: "明治", item: "85 明治維新（3）～明治政府の殖産興業政策～", idStart: 2810, idEnd: 2840 },
+    { part: "第4部 近代・現代", era: "明治", item: "86 不平士族の反乱と自由民権運動", idStart: 2841, idEnd: 2877 },
+    { part: "第4部 近代・現代", era: "明治", item: "87 松方財政と激化事件", idStart: 2878, idEnd: 2903 },
+    { part: "第4部 近代・現代", era: "明治", item: "88 憲法と諸法典の整備", idStart: 2904, idEnd: 2946 },
+    { part: "第4部 近代・現代", era: "明治", item: "89 初期議会", idStart: 2947, idEnd: 2964 },
+    { part: "第4部 近代・現代", era: "明治", item: "90 条約改正", idStart: 2965, idEnd: 2989 },
+    { part: "第4部 近代・現代", era: "明治", item: "91 日清戦争", idStart: 2990, idEnd: 3017 },
+    { part: "第4部 近代・現代", era: "明治", item: "92 政党内閣の誕生と立憲政友会の成立", idStart: 3018, idEnd: 3042 },
+    { part: "第4部 近代・現代", era: "明治", item: "93 中国分割と日露戦争", idStart: 3043, idEnd: 3079 },
+    { part: "第4部 近代・現代", era: "明治", item: "94 日露戦争後の外交", idStart: 3080, idEnd: 3112 },
+    { part: "第4部 近代・現代", era: "明治", item: "95 官営事業の払い下げと軽工業の発展", idStart: 3113, idEnd: 3145 },
+    { part: "第4部 近代・現代", era: "明治", item: "96 重工業の形成と発展", idStart: 3146, idEnd: 3180 },
+    { part: "第4部 近代・現代", era: "明治", item: "97 社会運動の発生", idStart: 3181, idEnd: 3217 },
+    { part: "第4部 近代・現代", era: "明治", item: "98 明治時代の文化（1）～思想～", idStart: 3218, idEnd: 3243 },
+    { part: "第4部 近代・現代", era: "明治", item: "99 明治時代の文化（2）～宗教～", idStart: 3244, idEnd: 3262 },
+    { part: "第4部 近代・現代", era: "明治", item: "100 明治時代の文化（3）～教育～", idStart: 3263, idEnd: 3290 },
+    { part: "第4部 近代・現代", era: "明治", item: "101 明治時代の文化（4）～学問～", idStart: 3291, idEnd: 3308 },
+    { part: "第4部 近代・現代", era: "明治", item: "102 明治時代の文化（5）～新聞・雑誌～", idStart: 3309, idEnd: 3316 },
+    { part: "第4部 近代・現代", era: "明治", item: "103 明治時代の文化（6）～文学～", idStart: 3317, idEnd: 3356 },
+    { part: "第4部 近代・現代", era: "明治", item: "104 明治時代の文化（7）～芸術・その他～", idStart: 3357, idEnd: 3386 },
+    { part: "第4部 近代・現代", era: "明治", item: "歴史総合（3）～明治時代の「世界」～", idStart: 3387, idEnd: 3406 },
+    { part: "第4部 近代・現代", era: "大正", item: "105 第1次護憲運動", idStart: 3407, idEnd: 3429 },
+    { part: "第4部 近代・現代", era: "大正", item: "106 第一次世界大戦", idStart: 3430, idEnd: 3467 },
+    { part: "第4部 近代・現代", era: "大正", item: "107 政党内閣の成立と終戦", idStart: 3468, idEnd: 3497 },
+    { part: "第4部 近代・現代", era: "大正", item: "108 ワシントン体制と護憲運動", idStart: 3498, idEnd: 3534 },
+    { part: "第4部 近代・現代", era: "大正", item: "109 大正時代の社会運動", idStart: 3535, idEnd: 3560 },
+    { part: "第4部 近代・現代", era: "大正", item: "110 大正時代の文化（1）～学問・思想～", idStart: 3561, idEnd: 3582 },
+    { part: "第4部 近代・現代", era: "大正", item: "111 大正時代の文化（2）～文学～", idStart: 3583, idEnd: 3617 },
+    { part: "第4部 近代・現代", era: "大正", item: "112 大正時代の文化（3）～美術・芸能・生活～", idStart: 3618, idEnd: 3645 },
+    { part: "第4部 近代・現代", era: "大正", item: "歴史総合（4）～大正時代の「世界」～", idStart: 3646, idEnd: 3660 },
+    { part: "第4部 近代・現代", era: "昭和・現代", item: "113 恐慌の時代", idStart: 3661, idEnd: 3695 },
+    { part: "第4部 近代・現代", era: "昭和・現代", item: "114 政党内閣の終焉", idStart: 3696, idEnd: 3738 },
+    { part: "第4部 近代・現代", era: "昭和・現代", item: "115 ファシズムの台頭と昭和初期の経済", idStart: 3739, idEnd: 3778 },
+    { part: "第4部 近代・現代", era: "昭和・現代", item: "116 日中戦争", idStart: 3779, idEnd: 3817 },
+    { part: "第4部 近代・現代", era: "昭和・現代", item: "117 第二次世界大戦", idStart: 3818, idEnd: 3856 },
+    { part: "第4部 近代・現代", era: "昭和・現代", item: "118 太平洋戦争", idStart: 3857, idEnd: 3901 },
+    { part: "第4部 近代・現代", era: "昭和・現代", item: "119 戦前（戦時下）の文化", idStart: 3902, idEnd: 3908 },
+    { part: "第4部 近代・現代", era: "昭和・現代", item: "歴史総合（5）～戦前の「世界」～", idStart: 3909, idEnd: 3925 },
+    { part: "第4部 近代・現代", era: "昭和・現代", item: "120 占領と戦後処理", idStart: 3926, idEnd: 3947 },
+    { part: "第4部 近代・現代", era: "昭和・現代", item: "121 戦後の経済の民主化", idStart: 3948, idEnd: 3965 },
+    { part: "第4部 近代・現代", era: "昭和・現代", item: "122 民主化政策", idStart: 3966, idEnd: 3987 },
+    { part: "第4部 近代・現代", era: "昭和・現代", item: "123 日本国憲法の公布と政治", idStart: 3988, idEnd: 4017 },
+    { part: "第4部 近代・現代", era: "昭和・現代", item: "124 冷戦と占領政策の転換", idStart: 4018, idEnd: 4061 },
+    { part: "第4部 近代・現代", era: "昭和・現代", item: "125 日本の独立", idStart: 4062, idEnd: 4090 },
+    { part: "第4部 近代・現代", era: "昭和・現代", item: "126 55年体制", idStart: 4091, idEnd: 4137 },
+    { part: "第4部 近代・現代", era: "昭和・現代", item: "127 高度経済成長", idStart: 4138, idEnd: 4193 },
+    { part: "第4部 近代・現代", era: "昭和・現代", item: "128 高度経済成長の終焉", idStart: 4194, idEnd: 4225 },
+    { part: "第4部 近代・現代", era: "昭和・現代", item: "129 1980年代の日本と世界", idStart: 4226, idEnd: 4257 },
+    { part: "第4部 近代・現代", era: "昭和・現代", item: "130 1990年代以降の日本と世界", idStart: 4258, idEnd: 4297 },
+    { part: "第4部 近代・現代", era: "昭和・現代", item: "131 戦後の文化と生活", idStart: 4298, idEnd: 4325 },
+    { part: "第4部 近代・現代", era: "昭和・現代", item: "歴史総合（6）～戦後の「世界」～", idStart: 4326, idEnd: 4351 }
   ];
+
+  // 一問一答データ（サンプル）
+  const QUESTIONS = [
+    { "id": 1, "star": 1, "question": "人類の祖先が地球上に現れるのは、今から約（）年前と言われている。", "answer": "700万" },
+    { "id": 2, "star": 3, "question": "地質年代の第四紀は、およそ1万年前を境に、（）と（）に二分される。", "answer": "更新世、完新世" },
+    { "id": 25, "star": 3, "question": "（）世になると、地球の気候が温暖になり、海面が上昇して現代の日本列島が形成された。", "answer": "完新世" },
+    { "id": 126, "star": 3, "question": "3世紀には、（）を女王とする（）が30余りの小国をまとめていた。", "answer": "卑弥呼、邪馬台国" },
+    { "id": 292, "star": 2, "question": "664年には、太宰府の近くに（）を築き、対馬・壱岐に防人との通信手段として（）を置いた。", "answer": "水城、烽（とぶひ）" },
+    { "id": 293, "star": 3, "question": "中大兄皇子は、都を（）に移し、668年に即位して（）天皇となった。", "answer": "近江大津宮、天智天皇" }
+  ];
+
+  // IDから属性を特定する関数
+  function getMetaById(id) {
+    const rule = MAPPING_RULES.find(r => id >= r.idStart && id <= r.idEnd);
+    return rule || { part: "その他", era: "その他", item: "その他" };
+  }
 
   let currentQuestions = [];
   let currentIndex = 0;
   let history = JSON.parse(localStorage.getItem('history') || '{}');
 
   window.addEventListener('DOMContentLoaded', () => {
-    initEraSelect();
+    initSelects();
     updateStats();
     renderSearch();
   });
 
-  // 時代の動的生成
-  function initEraSelect() {
+  // 選択肢の初期化
+  function initSelects() {
+    const partSelect = document.getElementById('partSelect');
+    const parts = ["ALL", ...new Set(MAPPING_RULES.map(r => r.part))];
+    partSelect.innerHTML = parts.map(p => `<option value="${p}">${p === 'ALL' ? '【部】すべて' : p}</option>`).join('');
+    onPartChange();
+  }
+
+  function onPartChange() {
+    const partVal = document.getElementById('partSelect').value;
     const eraSelect = document.getElementById('eraSelect');
-    const uniqueEras = [...new Set(QUESTIONS.map(q => q.era))];
-    eraSelect.innerHTML = '<option value="ALL">すべて（全範囲）</option>';
-    uniqueEras.forEach(e => {
-      eraSelect.innerHTML += `<option value="${e}">${e}</option>`;
-    });
+    
+    let filteredRules = MAPPING_RULES;
+    if (partVal !== 'ALL') {
+      filteredRules = MAPPING_RULES.filter(r => r.part === partVal);
+    }
+    const eras = ["ALL", ...new Set(filteredRules.map(r => r.era))];
+    eraSelect.innerHTML = eras.map(e => `<option value="${e}">${e === 'ALL' ? '【時代】すべて' : e}</option>`).join('');
+    onEraChange();
+  }
+
+  function onEraChange() {
+    const partVal = document.getElementById('partSelect').value;
+    const eraVal = document.getElementById('eraSelect').value;
+    const itemSelect = document.getElementById('itemSelect');
+
+    let filteredRules = MAPPING_RULES;
+    if (partVal !== 'ALL') filteredRules = filteredRules.filter(r => r.part === partVal);
+    if (eraVal !== 'ALL') filteredRules = filteredRules.filter(r => r.era === eraVal);
+
+    const items = ["ALL", ...new Set(filteredRules.map(r => r.item))];
+    itemSelect.innerHTML = items.map(i => `<option value="${i}">${i === 'ALL' ? '【項目】すべて' : i}</option>`).join('');
   }
 
   function toggleStarBtn(el) { el.classList.toggle('active'); }
@@ -265,36 +432,50 @@
     const query = document.getElementById('searchInput').value.trim().toLowerCase();
     const resultsEl = document.getElementById('searchResults');
     
-    const filtered = QUESTIONS.filter(q => 
-      !query || q.question.toLowerCase().includes(query) || q.answer.toLowerCase().includes(query) || q.era.toLowerCase().includes(query)
-    );
+    const filtered = QUESTIONS.filter(q => {
+      const meta = getMetaById(q.id);
+      return !query || 
+        q.question.toLowerCase().includes(query) || 
+        q.answer.toLowerCase().includes(query) || 
+        meta.item.toLowerCase().includes(query) ||
+        meta.era.toLowerCase().includes(query);
+    });
 
     if (filtered.length === 0) {
       resultsEl.innerHTML = '<p style="color:#8e8e93;">該当する問題が見つかりません。</p>';
       return;
     }
 
-    resultsEl.innerHTML = filtered.map(q => `
-      <div class="search-item">
-        <span class="badge">${q.era}</span>
-        <span class="badge" style="background:#fff3c4; color:#996600;">${'★'.repeat(q.star) || '無印'}</span>
-        <div class="search-q">${q.question}</div>
-        <div class="search-a">答: ${q.answer}</div>
-      </div>
-    `).join('');
+    resultsEl.innerHTML = filtered.map(q => {
+      const meta = getMetaById(q.id);
+      return `
+        <div class="search-item">
+          <span class="badge">${meta.era}</span>
+          <span class="badge" style="background:#fff3c4; color:#996600;">${'★'.repeat(q.star) || '無印'}</span>
+          <div style="font-size:11px; color:#8e8e93; margin-top:2px;">${meta.item}</div>
+          <div class="search-q" style="margin-top:4px;">${q.question}</div>
+          <div class="search-a">答: ${q.answer}</div>
+        </div>
+      `;
+    }).join('');
   }
 
   function startQuiz() {
     const selectedStars = getSelectedStars();
+    const partVal = document.getElementById('partSelect').value;
     const eraVal = document.getElementById('eraSelect').value;
+    const itemVal = document.getElementById('itemSelect').value;
     const mode = document.getElementById('modeSelect').value;
     const countVal = document.getElementById('countSelect').value;
 
     if (selectedStars.length === 0) return alert('星を最低1つ以上選択してください。');
 
     let filtered = QUESTIONS.filter(q => {
+      const meta = getMetaById(q.id);
       if (!selectedStars.includes(q.star)) return false;
-      if (eraVal !== 'ALL' && q.era !== eraVal) return false;
+      if (partVal !== 'ALL' && meta.part !== partVal) return false;
+      if (eraVal !== 'ALL' && meta.era !== eraVal) return false;
+      if (itemVal !== 'ALL' && meta.item !== itemVal) return false;
       if (mode === 'unanswered' && history[q.id] !== undefined) return false;
       if (mode === 'mistaken' && history[q.id] !== false) return false;
       return true;
@@ -320,7 +501,11 @@
     }
 
     const q = currentQuestions[currentIndex];
-    document.getElementById('eraBadge').textContent = q.era;
+    const meta = getMetaById(q.id);
+
+    document.getElementById('partBadge').textContent = meta.part;
+    document.getElementById('eraBadge').textContent = meta.era;
+    document.getElementById('itemBadge').textContent = meta.item;
     document.getElementById('starBadge').textContent = '★'.repeat(q.star) || '無印';
     document.getElementById('progressText').textContent = `${currentIndex + 1} / ${currentQuestions.length}`;
     document.getElementById('qText').textContent = q.question;
